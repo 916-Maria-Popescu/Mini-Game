@@ -1,2 +1,2 @@
 # Mini-Game
-JS mini game
+JS mini game little 

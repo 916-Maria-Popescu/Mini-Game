@@ -5,8 +5,14 @@ import Enemy from "./Enemy.js";
 export default class TileMap {
   constructor(tileSize) {
     this.tileSize = tileSize;
+
     this.yellowDot = new Image();
     this.yellowDot.src = "../images/yellowDot.png";
+    this.superDotPink = new Image();
+    this.superDotPink.src = "../images/pinkDot.png";
+    this.superDot = this.superDotPink;
+    this.superDotTimerDefault = 30;
+    this.superDotTimer = this.superDotTimerDefault;
     this.wall = new Image();
     this.wall.src = "../images/wall.png";
   }
@@ -15,18 +21,20 @@ export default class TileMap {
   // 1 - wall
   // 2 - empty tile (black)
   // 3 - pacman
+  // 4 - enemy
+  // 5 - super dot
   map = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1],
-    [1, 0, 4, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
-    [1, 0, 1, 0, 4, 0, 1, 0, 0, 0, 1, 0, 1],
-    [1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1],
+    [1, 0, 4, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 5, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 1, 0, 4, 0, 1, 5, 0, 0, 1, 0, 1],
+    [1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
     [1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 1],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
   ];
   draw(ctx) {
@@ -40,9 +48,30 @@ export default class TileMap {
           this.#drawYellowDot(ctx, column, row);
         } else if (tile == 2) {
           this.#drawEmptyTile(ctx, column, row);
+        } else if (tile == 5) {
+          this.#drawSuperDot(ctx, column, row);
         }
       }
     }
+  }
+
+  #drawSuperDot(ctx, column, row) {
+    this.superDotTimer--;
+    if (this.superDotTimer == 0) {
+      this.superDotTimer = this.superDotTimerDefault;
+      if (this.superDot == this.superDotPink) {
+        this.superDot = this.yellowDot;
+      } else {
+        this.superDot = this.superDotPink;
+      }
+    }
+    ctx.drawImage(
+      this.superDot,
+      column * this.tileSize,
+      row * this.tileSize,
+      this.tileSize,
+      this.tileSize
+    );
   }
 
   #drawWall(ctx, column, row) {
@@ -170,5 +199,22 @@ export default class TileMap {
       }
     }
     return false;
+  }
+
+  eatSuperPoint(x, y) {
+    const row = y / this.tileSize;
+    const column = x / this.tileSize;
+    if (Number.isInteger(row) && Number.isInteger(column)) {
+      if (this.map[row][column] == 5) {
+        this.map[row][column] = 2;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  didWin() {
+    const dots = this.map.flat().filter((tile) => tile === 0).length;
+    return 0 === dots;
   }
 }

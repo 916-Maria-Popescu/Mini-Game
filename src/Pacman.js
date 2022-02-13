@@ -10,21 +10,36 @@ export default class Pacman {
     this.velocity = velocity;
     this.tileMap = tileMap;
 
+    this.isMoving = false;
     this.currentMovingDirection = null;
     this.reqestedMovingDirection = null;
+
     this.animationTimerDeafult = 10;
     this.animationTimerCurrent = null;
     this.pacmanRotation = PacmanRotation.right;
+
     this.eatPointSound = new Audio("../sounds/waka.wav");
+
+    this.eatSuperPointSound = new Audio("../sounds/power_dot.wav");
+    this.timers = [];
+    this.superPointActive = false;
+    this.superPointLastSeconds = false;
+
+    this.eatEnemySound = new Audio("../sounds/eat_ghost.wav");
 
     document.addEventListener("keydown", this.#keydown);
     this.#loadImages();
   }
 
-  draw(ctx) {
-    this.#animate();
-    this.#move();
+  draw(ctx, pause, enemies) {
+    if (!pause) {
+      this.#animate();
+      this.#move();
+    }
+
     this.#eatPoint();
+    this.#eatSuperPoint();
+    this.#eatEnemy(enemies);
 
     const size = this.tileSize / 2;
 
@@ -39,6 +54,10 @@ export default class Pacman {
       this.tileSize
     );
     ctx.restore();
+  }
+
+  getIsMoving() {
+    return this.isMoving;
   }
 
   #loadImages() {
@@ -67,6 +86,7 @@ export default class Pacman {
         this.currentMovingDirection = MovingDirection.up;
       }
       this.reqestedMovingDirection = MovingDirection.up;
+      this.isMoving = true;
     }
     //down - 40
     if (event.keyCode == 40) {
@@ -74,12 +94,14 @@ export default class Pacman {
         this.currentMovingDirection = MovingDirection.down;
       }
       this.reqestedMovingDirection = MovingDirection.down;
+      this.isMoving = true;
     }
     //left - 37
     if (event.keyCode == 37) {
       if (this.currentMovingDirection == MovingDirection.right) {
         this.currentMovingDirection = MovingDirection.left;
       }
+      this.isMoving = true;
       this.reqestedMovingDirection = MovingDirection.left;
     }
     //right - 39
@@ -87,6 +109,7 @@ export default class Pacman {
       if (this.currentMovingDirection == MovingDirection.left) {
         this.currentMovingDirection = MovingDirection.right;
       }
+      this.isMoving = true;
       this.reqestedMovingDirection = MovingDirection.right;
     }
   };
@@ -159,6 +182,41 @@ export default class Pacman {
   #eatPoint() {
     if (this.tileMap.eatPoint(this.x, this.y)) {
       this.eatPointSound.play();
+    }
+  }
+
+  #eatSuperPoint() {
+    if (this.tileMap.eatSuperPoint(this.x, this.y)) {
+      this.eatSuperPointSound.play();
+      this.superPointActive = true;
+      this.superPointLastSeconds = false;
+      this.timers.forEach((timer) => clearTimeout(timer));
+      this.timers = [];
+
+      let superPointTimer = setTimeout(() => {
+        this.superPointActive = false;
+        this.superPointLastSeconds = false;
+      }, 1000 * 6);
+
+      this.timers.push(superPointTimer);
+
+      let superPointLastSecondsTimer = setTimeout(() => {
+        this.superPointLastSeconds = true;
+      }, 1000 * 3);
+
+      this.timers.push(superPointLastSecondsTimer);
+    }
+  }
+
+  #eatEnemy(enemies) {
+    if (this.superPointActive) {
+      const allEatenEnemies = enemies.filter((enemy) =>
+        enemy.touchingWith(this)
+      );
+      allEatenEnemies.forEach((enemy) => {
+        enemies.splice(enemies.indexOf(enemy), 1);
+        this.eatEnemySound.play();
+      });
     }
   }
 }
